@@ -1,6 +1,6 @@
 import Image from 'next/image';
-import { Button } from '@/components/ui/Button';
 import { BsFillSuitClubFill, BsFillSuitHeartFill, BsFillSuitDiamondFill, BsFillSuitSpadeFill } from 'react-icons/bs';
+import { Button } from '@/components/ui/Button';
 
 export default function Home() {
   const icons = [
