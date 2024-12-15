@@ -7,13 +7,12 @@ import { SessionProvider } from '../components/providers/SessionProvider';
 import ReactQueryProvider from '@/components/providers/ReactQueryProvider';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { validateSessionToken } from '@/lib/auth';
-import './globals.css';
 import Navbar from '@/components/navbar';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Dynamic Job Finder',
-  description:
-    'Our web platform integrates seamlessly with Discord to connect our community, enhancing your experience as you search for and post job opportunities online.',
+  title: 'Camel Blackjack',
+  description: 'Camel Blackjack built with NextJS',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,7 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="en"
       suppressHydrationWarning>
-      <body className={`${GeistSans.className} bg-light dark:bg-dark`}>
+      <body className={`${GeistSans.className} bg-background dark:bg-dark_background`}>
         <NuqsAdapter>
           <ThemeProvider>
             <ReactQueryProvider>

@@ -21,54 +21,20 @@ const config: Config = {
       },
       colors: {
         text: '#000000',
-        accent2: '#366b58',
-        gray: '#6b7280',
-        logo: '#d1f6ee',
-        border: '#9CA3AF',
-        input: '#9CA3AF',
-        ring: '#E5EBF5',
-        background: '#FFFFFF',
-        foreground: '#000000',
-        dark_text: '#ffffff',
-        dark_gray: '#9ca3af',
-        dark_primary: '#96BBCA',
-        dark_border: '#355B6A',
-        dark_accent: '#0A101A',
-        dark_secondary: '#355B6A',
-        dark_background: '#0F1A2B',
-        chat: '#29455d',
-        primary: {
-          DEFAULT: '#355B6A',
-          foreground: '#FFFFFF',
-        },
-        secondary: {
-          DEFAULT: '#1D2F50',
-          foreground: '#FFFFFF',
-        },
-        destructive: {
-          DEFAULT: '#CA3D3D',
-          foreground: '#FFFFFF',
-        },
-        constructive: {
-          DEFAULT: '#228B22',
-          foreground: '#FFFFFF',
-        },
-        muted: {
-          DEFAULT: '#F3F3F2',
-          foreground: '#2F2A28',
-        },
-        accent: {
-          DEFAULT: '#d2d9e4',
-          foreground: '#FFFFFF',
-        },
-        popover: {
-          DEFAULT: '#FFFFFF',
-          foreground: '#0B0909',
-        },
-        card: {
-          DEFAULT: '#FFFFFF',
-          foreground: '#0B0909',
-        },
+        background: '#e5ebf5',
+        primary: '#96a8c9',
+        secondary: '#b7c2d6',
+
+        dark_text: '#c8c8c8',
+        dark_background: '#0c0d24',
+        dark_primary: '#15183b',
+        dark_secondary: '#2f314b',
+
+        gray: '#c8c8c8',
+        accent: '#d79e00',
+        accentRed: '#dd2814',
+        accentGreen: '#28dd14',
+        accentBlue: '#1428dd',
       },
       borderRadius: {
         lg: '0.5rem',
