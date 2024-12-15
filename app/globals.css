@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-text: #000000;
+    --color-accent: #e5ebf5;
+    --color-gray: #6b7280;
+    --color-logo: #d1f6ee;
+    --color-border: #1d2f50;
+    --color-input: #9ca3af;
+    --color-ring: #e5ebf5;
+    --color-background: #ffffff;
+    --color-foreground: #000000;
+    --color-primary: #355b6a;
+    --color-secondary: #1d2f50;
+    --color-destructive: #ca3d3d;
+    --color-constructive: #1c9846;
+  }
+
+  .dark {
+    --color-text: #ffffff;
+    --color-accent: #355b6a;
+    --color-gray: #9ca3af;
+    --color-border: #355b6a;
+    --color-input: #355b6a;
+    --color-background: #0f1a2b;
+    --color-foreground: #ffffff;
+    --color-primary: #96bbca;
+    --color-secondary: #355b6a;
+    --color-destructive: #ca3d3d;
+    --color-constructive: #1c9846;
+  }
+}
+
+@layer utilities {
+  .small-caps {
+    font-variant: small-caps;
+  }
+  .flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .break-spaces {
+    white-space: normal;
+    word-wrap: break-word;
+  }
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* WebKit Browsers (Chrome, Safari, etc.) */
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 2px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
