@@ -9,6 +9,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { validateSessionToken } from '@/lib/auth';
 import Navbar from '@/components/navbar';
 import './globals.css';
+import Footer from '@/components/ui/Footer';
 
 export const metadata: Metadata = {
   title: 'Camel Blackjack',
@@ -33,9 +34,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     richColors
                     closeButton
                   />
-                  <main className="md:px-18 flex-center min-h-[calc(100vh-6rem)] flex-col gap-2 px-4 py-10 sm:px-14 lg:px-44 xl:px-64">
+                  <main className="md:px-18 flex-center min-h-[calc(100vh-4rem)] flex-col gap-2 px-4 py-16 sm:px-14 lg:px-44 xl:px-64">
                     {children}
                   </main>
+                  <Footer />
                 </NextUIProvider>
               </SessionProvider>
             </ReactQueryProvider>

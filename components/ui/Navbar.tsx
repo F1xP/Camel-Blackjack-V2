@@ -2,16 +2,26 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signIn } from 'next-auth/react';
 import { useState } from 'react';
 import SideNavbar from './SideNavbar';
 import UserDropdown from './UserDropdown';
 import ThemeDropdown from './ThemeDropdown';
+import { useSession } from '../providers/SessionProvider';
+import ImageWithFallback from '../image-with-fall-back';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
+
+const googleScopes =
+  'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/user.gender.read';
+
+const googleAuthURL = `https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=303896066620-5ppne30mk87bvo92edo519v2705rlojb.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(
+  `${baseUrl}/api/auth/google/callback`
+)}&scope=${encodeURIComponent(googleScopes)}&access_type=offline`;
 
 export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const location = usePathname();
-  const { data: session } = useSession();
+  const { user } = useSession();
 
   const Links = [
     {
@@ -57,10 +67,10 @@ export default function Navbar() {
         })}
       </div>
       <ThemeDropdown />
-      {!session ? (
-        <button
-          className="flex-row hidden md:flex h-10 justify-center items-center gap-1 border rounded-md text-text dark:text-dark_text border-secondary dark:border-dark_secondary text-[1.2rem] hover:bg-secondary dark:hover:bg-dark_secondary cursor-pointer transition-all duration-300"
-          onClick={() => signIn('google')}>
+      {!user ? (
+        <Link
+          href={googleAuthURL}
+          className="flex-row hidden md:flex h-10 justify-center items-center gap-1 border rounded-md text-text dark:text-dark_text border-secondary dark:border-dark_secondary text-[1.2rem] hover:bg-secondary dark:hover:bg-dark_secondary cursor-pointer transition-all duration-300">
           <div className="bg-secondary dark:bg-dark_secondary h-10 p-2 flex justify-center items-center rounded-md rounded-r-none">
             <Image
               src={'/Google.svg'}
@@ -70,7 +80,7 @@ export default function Navbar() {
             />
           </div>
           <p className="font-bold p-1 px-3 small-caps">Sign In </p>
-        </button>
+        </Link>
       ) : (
         <div className="relative hidden md:flex">
           <button
@@ -80,25 +90,19 @@ export default function Navbar() {
               e.stopPropagation();
             }}>
             <div className="bg-secondary dark:bg-dark_secondary h-10 p-2 flex justify-center items-center rounded-md rounded-r-none flex-shrink-0">
-              <Image
-                src={session?.user?.image || ''}
-                alt={''}
-                width={28}
-                height={28}
+              <ImageWithFallback
+                type="user"
+                src={'/CamelBlackjackLogo.png'}
+                alt={'userImage'}
                 className="rounded-full"
               />
             </div>
             <p className="font-bold p-1 px-3 small-caps whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] lg:max-w-xs mb-0.5">
-              {session?.user?.name || ''}
+              {user?.name || ''}
             </p>
           </button>
-          <UserDropdown
-            isDropdownOpen={isDropdownOpen}
-            setIsDropdownOpen={setIsDropdownOpen}
-          />
         </div>
       )}
-      <SideNavbar />
     </nav>
   );
 }

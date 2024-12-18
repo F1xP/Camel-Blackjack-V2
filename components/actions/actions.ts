@@ -68,20 +68,51 @@ export const initializeGame = async (bet: number) => {
       const dealerValue = calculateHandValue(dealerHand);
       const dealerUpCard = dealerHand[0];
 
-      let buttons = ButtonFlags.Hit | ButtonFlags.Stand | ButtonFlags.DoubleDown;
-      let message = 'Game in progress';
+      let buttons = 0; // Start with no buttons enabled
 
       // Blackjack checks
       if (playerValue.value === 21) {
-        message = dealerValue.value === 21 ? 'Push - Both have Blackjack' : 'Blackjack! Player wins 1.5x bet';
+        const message = dealerValue.value === 21 ? 'Push - Both have Blackjack' : 'Blackjack! Player wins 1.5x bet';
         buttons = 0;
-      } else if (dealerValue.value === 21) {
-        message = 'Dealer has Blackjack';
-        buttons = dealerUpCard.rank === 'A' ? ButtonFlags.Insurance : 0;
-      } else {
-        if (playerHand[0].rank === playerHand[1].rank) buttons |= ButtonFlags.Split;
-        if (dealerUpCard.rank === 'A') buttons |= ButtonFlags.Insurance;
+
+        const [game] = await tx
+          .insert(gameTable)
+          .values({
+            userId: user.id,
+            playerHands: [playerHand],
+            dealerHand: dealerHand,
+            buttonState: buttons,
+            message,
+            deck,
+            currentBet: bet.toString(),
+            isCompleted: true,
+            balance: newBalance.toString(),
+            currentHandIndex: 0,
+          })
+          .returning();
+
+        return { game, newBalance };
       }
+
+      // Insurance handling: Only allow insurance if dealer's upcard is Ace
+      if (dealerUpCard.rank === 'A') {
+        buttons = ButtonFlags.Insurance;
+      } else {
+        // Normal game start options
+        buttons = ButtonFlags.Hit | ButtonFlags.Stand | ButtonFlags.DoubleDown;
+
+        // Additional split option if first two cards are same rank
+        if (playerHand[0].rank === playerHand[1].rank) {
+          buttons |= ButtonFlags.Split;
+        }
+      }
+
+      const message =
+        dealerValue.value === 21
+          ? dealerUpCard.rank === 'A'
+            ? 'Insurance Available'
+            : 'Dealer has Blackjack'
+          : 'Game in progress';
 
       const [game] = await tx
         .insert(gameTable)
@@ -121,6 +152,11 @@ export const hit = async () => {
       .select()
       .from(gameTable)
       .where(and(eq(gameTable.userId, user.id), eq(gameTable.isCompleted, false)));
+
+    // Block hit if insurance is pending
+    if (state.buttonState & ButtonFlags.Insurance) {
+      throw new CustomError('Insurance must be decided before taking actions');
+    }
 
     const deck = [...state.deck];
     const hands = [...state.playerHands];
@@ -182,6 +218,11 @@ export const stand = async () => {
         .select()
         .from(gameTable)
         .where(and(eq(gameTable.userId, user.id), eq(gameTable.isCompleted, false)));
+
+      // Block stand if insurance is pending
+      if (state.buttonState & ButtonFlags.Insurance) {
+        throw new CustomError('Insurance must be decided before standing');
+      }
 
       const hands = [...state.playerHands];
       const currentHandIndex = state.currentHandIndex ?? 0;
@@ -274,18 +315,17 @@ export const doubleDown = async () => {
         .from(gameTable)
         .where(and(eq(gameTable.userId, user.id), eq(gameTable.isCompleted, false)));
 
-      if (!(state.buttonState & ButtonFlags.DoubleDown)) {
-        throw new CustomError('Double Down not allowed');
-      }
+      // Block double down if insurance is pending
+      if (state.buttonState & ButtonFlags.Insurance)
+        throw new CustomError('Insurance must be decided before doubling down');
+      if (!(state.buttonState & ButtonFlags.DoubleDown)) throw new CustomError('Double Down not allowed');
 
       const deck = [...state.deck];
       const hands = [...state.playerHands];
       const currentHandIndex = state.currentHandIndex ?? 0;
       const hand = [...hands[currentHandIndex]];
 
-      if (hand.length !== 2) {
-        throw new CustomError('Invalid Double Down');
-      }
+      if (hand.length !== 2) throw new CustomError('Invalid Double Down');
 
       // Double the bet and deduct from balance
       const currentBet = parseFloat(state.currentBet);
@@ -303,20 +343,8 @@ export const doubleDown = async () => {
         balance: newBalance.toString(),
       };
 
-      if (hands.length === currentHandIndex + 1) {
-        // Last hand, proceed with dealer's turn
-        await tx
-          .update(gameTable)
-          .set({
-            ...finalState,
-            currentHandIndex: undefined, // Reset hand index
-          })
-          .where(eq(gameTable.id, state.id));
-
-        // Call stand to complete the game
-        return stand();
-      } else {
-        // Move to next hand
+      if (hands.length > currentHandIndex + 1) {
+        // More hands to play
         await tx
           .update(gameTable)
           .set({
@@ -327,7 +355,62 @@ export const doubleDown = async () => {
           })
           .where(eq(gameTable.id, state.id));
 
-        return { message: 'Double down successful' };
+        return { message: 'Double down successful. Moving to next hand' };
+      } else {
+        // Last hand, proceed with dealer's turn
+        let dealerHand = [...state.dealerHand];
+        let dealerValue = calculateHandValue(dealerHand);
+
+        while (dealerValue.value < 17 || (dealerValue.isSoft && dealerValue.value === 17)) {
+          dealerHand.push(deck.pop()!);
+          dealerValue = calculateHandValue(dealerHand);
+        }
+
+        // Calculate results
+        const results: string[] = hands.map((hand) => {
+          const playerValue = calculateHandValue(hand);
+
+          if (playerValue.value > 21) return 'Lose';
+          if (dealerValue.value > 21) return 'Win';
+          if (playerValue.value > dealerValue.value) return 'Win';
+          if (playerValue.value < dealerValue.value) return 'Lose';
+          return 'Push';
+        });
+
+        // Calculate balance change
+        const balanceChange = results.reduce((total, result) => {
+          switch (result) {
+            case 'Win':
+              return total + currentBet; // Win pays 1:1
+            case 'Lose':
+              return total - currentBet;
+            default:
+              return total; // Push: no change
+          }
+        }, 0);
+
+        // Update balance
+        const newBalance = await updateBalance(tx, user.id, balanceChange);
+
+        // Update game state
+        await tx
+          .update(gameTable)
+          .set({
+            ...finalState,
+            dealerHand,
+            buttonState: 0,
+            message: `Results: ${results.join(', ')}`,
+            deck,
+            isCompleted: true,
+            currentHandIndex: undefined,
+            balance: newBalance.toString(),
+          })
+          .where(eq(gameTable.id, state.id));
+
+        return {
+          message: 'Double down completed',
+          results,
+        };
       }
     });
 
@@ -351,6 +434,11 @@ export const split = async () => {
         .select()
         .from(gameTable)
         .where(and(eq(gameTable.userId, user.id), eq(gameTable.isCompleted, false)));
+
+      // Block split if insurance is pending
+      if (state.buttonState & ButtonFlags.Insurance) {
+        throw new CustomError('Insurance must be decided before splitting');
+      }
 
       if (!(state.buttonState & ButtonFlags.Split)) {
         throw new CustomError('Split not allowed');
@@ -401,8 +489,9 @@ export const split = async () => {
   }
 };
 
-export const takeInsurance = async () => {
+export const insurance = async () => {
   try {
+    const takeInsurance = true;
     const user = await isAuthorized('Default');
 
     const gameResult = await db.transaction(async (tx) => {
@@ -419,26 +508,43 @@ export const takeInsurance = async () => {
       const currentBet = parseFloat(state.currentBet);
       const insuranceBet = currentBet / 2; // Standard insurance is half the original bet
 
-      // Update balance based on insurance result
-      const balanceChange = dealerValue.value === 21 ? insuranceBet : -insuranceBet;
-      const newBalance = await updateBalance(tx, user.id, balanceChange);
+      let newBalance = parseFloat(state.balance);
+      let message = '';
+      let isCompleted = false;
+      let buttons = 0;
 
-      // Determine insurance result message
-      const insuranceResult =
-        dealerValue.value === 21 ? `Insurance pays out: +${insuranceBet}` : `Insurance lost: -${insuranceBet}`;
+      if (takeInsurance) {
+        // Insurance taken
+        const balanceChange = dealerValue.value === 21 ? insuranceBet : -insuranceBet;
+        newBalance = await updateBalance(tx, user.id, balanceChange);
+        message =
+          dealerValue.value === 21 ? `Insurance pays out: +${insuranceBet}` : `Insurance lost: -${insuranceBet}`;
+
+        // If dealer has Blackjack, game is completed
+        isCompleted = dealerValue.value === 21;
+        buttons = dealerValue.value === 21 ? 0 : ButtonFlags.Hit | ButtonFlags.Stand | ButtonFlags.DoubleDown;
+      } else {
+        // Insurance denied
+        message =
+          dealerValue.value === 21 ? 'Dealer has Blackjack. Game over.' : 'Insurance declined. Continue playing.';
+
+        // If dealer has Blackjack, game is completed
+        isCompleted = dealerValue.value === 21;
+        buttons = dealerValue.value === 21 ? 0 : ButtonFlags.Hit | ButtonFlags.Stand | ButtonFlags.DoubleDown;
+      }
 
       // Update game state
       await tx
         .update(gameTable)
         .set({
-          buttonState: 0,
-          message: insuranceResult,
-          isCompleted: true,
+          buttonState: buttons,
+          message,
+          isCompleted,
           balance: newBalance.toString(),
         })
         .where(eq(gameTable.id, state.id));
 
-      return { message: insuranceResult };
+      return { message, isCompleted };
     });
 
     return responseObject({

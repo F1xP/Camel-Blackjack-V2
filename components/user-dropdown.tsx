@@ -12,9 +12,9 @@ import { BsPersonWorkspace } from 'react-icons/bs';
 import { RiAdminLine } from 'react-icons/ri';
 import { cn } from '@/lib/utils';
 import { Role } from '@/drizzle/schema/db-enums';
-import { buttonVariants } from './button';
 import SignOutButton from './signout-button';
 import ImageWithFallback from './image-with-fall-back';
+import { buttonVariants } from './ui/Button';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
@@ -34,7 +34,7 @@ const NavbarUserDropdown: React.FC<{ isSignedIn: boolean; id: string | undefined
     <>
       {!isSignedIn ? (
         <Link
-          className={cn(buttonVariants({ size: 'sm', variant: 'outline' }), 'h-10')}
+          className={cn(buttonVariants({ size: 'sm' }), 'h-10')}
           href={googleAuthURL}>
           SIGN IN
         </Link>
