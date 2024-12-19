@@ -12,11 +12,7 @@ export const getGame = async (userId: string) => {
 
   if (activeGame.length > 0) {
     const state = activeGame[0];
-    if (state.buttonState !== 0) {
-      state.dealerHand.pop();
-      // @ts-ignore
-      state.dealerHand.push('');
-    }
+    if (state.buttonState !== 0) state.dealerHand.pop();
     return state;
   }
 

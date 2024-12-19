@@ -7,10 +7,14 @@ export const CardDisplay = ({
   card,
   index = 0,
   totalCards = 1,
+  gameId,
+  isVisible = false,
 }: {
-  card?: Card;
+  card?: Card | undefined;
   index?: number;
   totalCards?: number;
+  gameId: string;
+  isVisible?: boolean;
 }) => {
   const suitSymbols = {
     H: '♥️',
@@ -33,26 +37,29 @@ export const CardDisplay = ({
       initial={{
         opacity: 0,
         scale: 0.8,
+        x: -200,
+        y: stackOffset,
         rotate: Math.random() * 10 - 5,
-        y: stackOffset,
-        x: stackOffset,
       }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-        rotate: 0,
-        y: stackOffset,
-        x: stackOffset,
-      }}
+      animate={
+        isVisible
+          ? {
+              opacity: 1,
+              scale: 1,
+              x: stackOffset,
+              y: stackOffset,
+              rotate: 0,
+            }
+          : {}
+      }
       transition={{
         type: 'spring',
-        stiffness: 300,
+        stiffness: 200,
         damping: 20,
-        delay: index * 0.1,
+        duration: 0.5,
       }}
       className="absolute top-0 left-0 w-full"
       style={{
-        transform: `translateY(${stackOffset}px)`,
         zIndex: totalCards - index,
       }}>
       <div className="border border-black bg-white rounded-md shadow-md w-full max-w-[3rem] sm:max-w-[4rem] aspect-[2/3] flex flex-col relative mx-auto overflow-hidden">
